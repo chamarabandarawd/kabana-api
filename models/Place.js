@@ -3,6 +3,7 @@ import mongoose, { Schema } from "mongoose";
 
 export const PlaceShema=new Schema({
 
+    owner:{type: mongoose.Schema.Types.ObjectId, ref: 'User'},
     title:String,
     address:String,
     photos:[String],
