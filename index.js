@@ -143,9 +143,10 @@ app.post('/logout', (req, res) => {
 })
 
 app.post('/places', (req, res) => {
-    const { title, address, photos,
+    const { title, address, photoKeys,
         desc, perks, extraInfo,
-        checkIn, checkOut, guests } = req.body
+        checkIn, checkOut, guests, price } = req.body;
+
     const { token } = req.cookies;
     if (token) {
         jwt.verify(token, jwtSecret, {}, async (err, user) => {
@@ -154,18 +155,92 @@ app.post('/places', (req, res) => {
                 owner: user.id,
                 title: title,
                 address: address,
-                photos: photos,
+                photos: photoKeys,
                 desc: desc,
                 perks: perks,
                 extraInfo: extraInfo,
                 checkIn: checkIn,
                 checkOut: checkOut,
-                maxGuests: guests
+                maxGuests: guests,
+                price: price,
+                s3Keys:photoKeys,
             })
         })
     }
 
     res.json("Place successfully added!");
 })
+
+app.put('/places', (req, res) => {
+
+    const { id, title, address, photoKeys,
+        desc, perks, extraInfo,
+        checkIn, checkOut, guests, price,s3Keys } = req.body
+    const { token } = req.cookies;
+    if (token) {
+        jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+            if (err) throw err;
+            const placeDoc = await PlaceModel.findById(id);
+            if (userData.id === placeDoc.owner.toString()) {
+                placeDoc.set(
+                    {
+                        title: title,
+                        address: address,
+                        photos: photoKeys,
+                        desc: desc,
+                        perks: perks,
+                        extraInfo: extraInfo,
+                        checkIn: checkIn,
+                        checkOut: checkOut,
+                        maxGuests: guests,
+                        price: price,
+                        s3Keys:s3Keys,
+                    });
+                placeDoc.save()
+                res.json('Placess successfully updated!')
+            }
+            
+        })
+    }
+})
+
+app.get('/user-places', (req, res) => {
+    const { token } = req.cookies;
+    if (token) {
+        jwt.verify(token, jwtSecret, {}, async (err, user) => {
+            if (err) throw err;
+            const { id } = user;
+            const places = await PlaceModel.find({ owner: id });
+
+
+            for (let i = 0; i < places.length; i++) {
+
+                let photoList = places[i].photos
+
+                for (let j = 0; j < photoList.length; j++) {
+                    photoList[j] = await getObjectURL('public/' + photoList[j])
+                }
+                places[i].photos = photoList;
+
+            }
+            res.json(places)
+
+        })
+    }
+})
+
+
+app.get('/places/:id', async (req, res) => {
+
+    const { id } = req.params;
+    let placeDoc = await PlaceModel.findById(id)
+    let photoList = placeDoc.photos;
+
+    for (let j = 0; j < photoList.length; j++) {
+        photoList[j] = await getObjectURL('public/' + photoList[j])
+    }
+    placeDoc.photos = photoList;
+    res.json(placeDoc)
+});
 
 app.listen(4000, () => console.log("api app listening on prot 4000!"))

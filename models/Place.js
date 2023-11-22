@@ -13,6 +13,8 @@ export const PlaceShema=new Schema({
     checkIn:String,
     checkOut: String,
     maxGuests : Number,
+    price:String,
+    s3Keys:[String],
 });
 
 const PlaceModel = mongoose.model('Place',PlaceShema);
